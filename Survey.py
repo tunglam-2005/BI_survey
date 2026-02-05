@@ -140,7 +140,7 @@ st.markdown("""
     }
     .tooltip .tooltiptext {
         visibility: hidden;
-        width: 450px;
+        width: 550px;
         background-color: #ffffff;
         color: #333;
         text-align: left;
@@ -257,7 +257,7 @@ def render_combined_visual_row(index, label, description, image_url):
     with col1:
         tooltip_html = f"""
         <div class="tooltip">
-            <span>ℹ️ {label}</span>
+            <span> {label}</span>
             <span class="tooltiptext">
                 <img src="{display_img}" class="tooltip-img" alt="Minh họa">
                 <br><b>Mô tả:</b><br>{description}
@@ -280,7 +280,7 @@ def render_filter_row(index, label, description, image_url):
     with col1:
         tooltip_html = f"""
         <div class="tooltip">
-            <span>ℹ️ {label}</span>
+            <span> {label}</span>
             <span class="tooltiptext">
                 <img src="{display_img}" class="tooltip-img" alt="Minh họa">
                 <br><b>Mô tả:</b><br>{description}
@@ -337,7 +337,9 @@ else:
             try:
                 response = requests.get(download_url)
                 if response.status_code == 200:
-                    st.image(BytesIO(response.content), caption="Hình ảnh tổng quan Dashboard", width="stretch")
+                    c1, c2, c3 = st.columns([1, 4, 1])
+                    with c2: # Chỉ hiển thị ảnh ở cột giữa
+                        st.image(BytesIO(response.content), caption="RP_Sales_Daily_MCH_Store - Sales by Store", width="stretch")
             except: pass
 
     # FORM CHÍNH
