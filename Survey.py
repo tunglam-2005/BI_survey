@@ -17,13 +17,18 @@ import re
 import requests
 from io import BytesIO
 import time
+import base64
 
 # --- 1. CẤU HÌNH ---
 DATA_SHEET_URL = "https://docs.google.com/spreadsheets/d/1DMgxkDSp_dq7IMzEmHdGK-nypIc_PLSsmTUIwFCXqZ8/edit"
 CONFIG_SHEET_URL = "https://docs.google.com/spreadsheets/d/1nNJI1oxEhgYtNCk1pdEFyIR6M4UPrfjRw1F_rljyAHM/edit" 
+EMAIL_DOMAIN = "@winmart.masangroup.com"
 
 TARGET_COLUMNS = [
-    "Timestamp", "1. Anh/chị thường truy cập Dashboard này khi nào?", "2. Mục đích lớn nhất của anh/chị khi mở Dashboard là gì?",
+    "Timestamp", 
+    "Email",
+    "1. Anh/chị thường truy cập Dashboard này khi nào?", 
+    "2. Mục đích lớn nhất của anh/chị khi mở Dashboard là gì?",
     "3. Anh/chị vui lòng đánh giá từng thành phần visual trong dashboard [Card % Sales: Hiển thị % tăng trưởng doanh thu so với kỳ trước theo thời gian chọn.]",
     "3. Anh/chị vui lòng đánh giá từng thành phần visual trong dashboard [Text box Filter: Hiển thị liệt kê các điều kiện lọc đang được lựa chọn.]",
     "3. Anh/chị vui lòng đánh giá từng thành phần visual trong dashboard [StoreProfile.Group_Concept: Concept cửa hàng, có khả năng drill down đến: Phân vùng -> Tỉnh/TP -> Quận/Huyện -> Phường/Xã -> Mã cửa hàng_Tên cửa hàng]",
@@ -113,7 +118,7 @@ st.set_page_config(page_title="Khảo sát BI Dashboard CMC", layout="wide")
 
 st.markdown("""
 <style>
-    /* CSS Tooltip hiện sang ngang */
+    /* 1. Khung chứa chính */
     .tooltip {
         position: relative;
         display: inline-block;
@@ -135,10 +140,15 @@ st.markdown("""
         z-index: 1000; 
     }
 
-    /* Nội dung Pop-up */
+    /* 2. Nội dung Pop-up (Container) */
     .tooltip .tooltiptext {
         visibility: hidden;
-        width: 700px; 
+        
+        /* Tự động ôm sát nội dung */
+        width: max-content;
+        max-width: 650px;
+        min-width: 300px;
+        
         background-color: #ffffff;
         color: #333;
         text-align: left;
@@ -147,11 +157,10 @@ st.markdown("""
         position: absolute;
         z-index: 9999;
         
-        /* 👇👇👇 KỸ THUẬT CĂN GIỮA MỚI 👇👇👇 */
-        top: 50%;             /* Điểm bắt đầu là giữa dòng cha */
-        left: 105%;           /* Đẩy sang phải */
-        transform: translateY(-50%); /* Dịch ngược lại 50% chiều cao của chính nó để căn giữa hoàn hảo */
-        /* ------------------------------------- */
+        /* Căn giữa dọc và sang phải */
+        top: 50%;
+        left: 105%;
+        transform: translateY(-50%);
         
         opacity: 0;
         transition: opacity 0.3s;
@@ -160,19 +169,16 @@ st.markdown("""
         font-weight: normal;
         font-size: 14px;
         line-height: 1.5;
+        white-space: normal; /* Đảm bảo văn bản tự xuống dòng */
     }
 
-    /* Mũi tên chỉ sang trái (hướng vào chữ) */
+    /* 3. Mũi tên chỉ sang trái */
     .tooltip .tooltiptext::after {
         content: "";
         position: absolute;
-        
-        /* 👇 Mũi tên cũng phải nằm giữa */
-        top: 50%; 
-        margin-top: -8px; /* Trừ đi 1 nửa kích thước mũi tên để chính xác */
-        /* -------------------------- */
-        
+        top: 50%;
         right: 100%; 
+        margin-top: -8px;
         border-width: 8px;
         border-style: solid;
         border-color: transparent #ffffff transparent transparent; 
@@ -183,11 +189,17 @@ st.markdown("""
         opacity: 1;
     }
     
+    /* 4. Hình ảnh (Image) */
     .tooltip-img {
-        width: 100%;
+        /* LOGIC TỰ ĐIỀU CHỈNH KHỔ ẢNH */
+        width: auto;
         height: auto;
+        max-width: 100%;
+        max-height: 450px; /* Chặn chiều cao ảnh dọc */
+        
+        display: block;
+        margin: 0 auto 12px auto;
         border-radius: 6px;
-        margin-bottom: 12px;
         border: 1px solid #eee;
     }
     
@@ -196,20 +208,40 @@ st.markdown("""
     .thank-you-box { text-align: center; padding: 50px; background-color: #f0f8ff; border-radius: 15px; margin-top: 20px; }
     .thank-you-title { color: #2E86C1; font-size: 32px; font-weight: bold; }
     .thank-you-text { font-size: 18px; color: #555; margin-top: 15px; }
+    
+    /* Ẩn dòng chữ hướng dẫn mặc định của Input */
+    [data-testid="InputInstructions"] { display: none; }
 </style>
 """, unsafe_allow_html=True)
 
-# --- 3. LOAD DATA ---
+# --- 3. LOAD DATA & IMAGE PROCESSING (BASE64) ---
 NUM_VISUALS = 16 
-img_placeholder = "https://via.placeholder.com/400x200?text=Chưa+có+ảnh"
+img_placeholder = "https://via.placeholder.com/400x200?text=No+Image"
 
-def process_drive_link(raw_link):
-    if not raw_link: return ""
-    match = re.search(r'(/d/|id=)([a-zA-Z0-9_-]+)', raw_link)
-    if match:
-        file_id = match.group(2)
-        return f"https://drive.google.com/thumbnail?id={file_id}&sz=w1000"
-    return raw_link
+@st.cache_data(show_spinner=False)
+def get_image_as_base64(drive_link):
+    """
+    Tải ảnh từ Google Drive và chuyển thành Base64 để hiển thị trong HTML Tooltip.
+    Khắc phục triệt để lỗi 403 Forbidden của Google.
+    """
+    if not drive_link: return None
+    
+    # 1. Lấy ID ảnh
+    match = re.search(r'[/\?&](?:d|id|file/d/)=([a-zA-Z0-9_-]+)', drive_link)
+    if not match: return None
+    file_id = match.group(1)
+    
+    # 2. Tải ảnh về
+    url = f"https://drive.google.com/uc?export=view&id={file_id}"
+    try:
+        response = requests.get(url, timeout=5)
+        if response.status_code == 200:
+            # 3. Mã hóa Base64
+            encoded = base64.b64encode(response.content).decode()
+            return f"data:image/jpeg;base64,{encoded}"
+    except:
+        pass
+    return None
 
 raw_config = get_config_data()
 loaded_items = []
@@ -218,9 +250,9 @@ if raw_config:
     for row in raw_config:
         lbl = row.get("Label", "")
         dsc = row.get("Description", "")
-        raw_img = row.get("Image URL", "")
-        final_img = process_drive_link(raw_img)
-        loaded_items.append((lbl, dsc, final_img))
+        raw_img_link = row.get("Image URL", "")
+        # Lưu link gốc, việc tải sẽ làm ở lúc render để tối ưu
+        loaded_items.append((lbl, dsc, raw_img_link))
 else:
     loaded_items = [("Item Mẫu", "Mô tả...", "")] * 35
 
@@ -233,9 +265,12 @@ else:
 
 issues_list = ["Cách trình bày/biểu đồ quá phức tạp", "Số liệu thường xuyên sai lệch", "Font chữ nhỏ, màu sắc khó nhìn", "Cần số liệu này nhưng không xem được", "Khó thao tác", "Tốc độ tải quá chậm", "Không hiển thị tốt trên thiết bị của tôi"]
 
-# --- 4. RENDER FUNCTIONS ---
-def render_combined_visual_row(index, label, description, image_url):
-    display_img = image_url if image_url and image_url.strip() else img_placeholder
+# --- 4. RENDER FUNCTIONS (ĐÃ SỬA SELECTBOX & BASE64) ---
+def render_combined_visual_row(index, label, description, raw_link):
+    # Xử lý ảnh bằng Base64 để nhúng vào HTML
+    base64_img = get_image_as_base64(raw_link)
+    display_src = base64_img if base64_img else img_placeholder
+
     col1, col2 = st.columns([7, 3])
     with col1:
         s1, s2 = st.columns([2, 5])
@@ -244,7 +279,7 @@ def render_combined_visual_row(index, label, description, image_url):
             <div class="tooltip">
                 <span> {label}</span>
                 <span class="tooltiptext">
-                    <img src="{display_img}" class="tooltip-img" alt="Minh họa">
+                    <img src="{display_src}" class="tooltip-img" alt="Minh họa">
                     <br>{description}<br>
                 </span>
             </div>
@@ -254,10 +289,11 @@ def render_combined_visual_row(index, label, description, image_url):
         st.markdown(f"<span class='small-text' style='color:#D35400'>Mức độ cần thiết:</span>", unsafe_allow_html=True)
         rating_options = ["Rất không cần thiết", "Không cần thiết", "Bình thường", "Cần thiết", "Rất cần thiết"]
 
+        # SỬA: Selectbox, index=None, KHÔNG có max_selections
         st.selectbox(
             f"Rating {label}", 
             rating_options, 
-            key=f"vis_rating_{index}", # Key bắt đầu bằng 'vis_'
+            key=f"vis_rating_{index}", 
             index=None,  
             placeholder="Chọn mức độ...",
             label_visibility="collapsed"
@@ -267,8 +303,10 @@ def render_combined_visual_row(index, label, description, image_url):
         st.multiselect(f"Issues {label}", issues_list, key=f"vis_issue_{index}", label_visibility="collapsed", placeholder="Chọn vấn đề...")
     st.markdown("<hr style='margin: 15px 0; border-top: 1px solid #f0f2f6;'>", unsafe_allow_html=True)
 
-def render_filter_row(index, label, description, image_url):
-    display_img = image_url if image_url and image_url.strip() else img_placeholder
+def render_filter_row(index, label, description, raw_link):
+    base64_img = get_image_as_base64(raw_link)
+    display_src = base64_img if base64_img else img_placeholder
+
     col1, col2 = st.columns([7, 3])
     with col1:
         s1, s2 = st.columns([2, 5])
@@ -277,7 +315,7 @@ def render_filter_row(index, label, description, image_url):
             <div class="tooltip">
                 <span> {label}</span>
                 <span class="tooltiptext">
-                    <img src="{display_img}" class="tooltip-img" alt="Minh họa">
+                    <img src="{display_src}" class="tooltip-img" alt="Minh họa">
                     <br>{description}<br>
                 </span>
             </div>
@@ -287,11 +325,11 @@ def render_filter_row(index, label, description, image_url):
         st.markdown(f"<span class='small-text' style='color:#D35400'>Mức độ cần thiết:</span>", unsafe_allow_html=True)
         rating_options = ["Rất không cần thiết", "Không cần thiết", "Bình thường", "Cần thiết", "Rất cần thiết"]
             
-        # SỬA: Dùng multiselect max=1
+        # SỬA: Selectbox, sửa key thành 'fil_'
         st.selectbox(
             f"Filter Rating {label}", 
             rating_options, 
-            key=f"fil_rating_{index}", # Quan trọng: Phải khác key của visual
+            key=f"fil_rating_{index}", 
             index=None, 
             placeholder="Chọn mức độ...",
             label_visibility="collapsed"
@@ -332,6 +370,7 @@ else:
             file_id = match.group(2)
             download_url = f"https://drive.google.com/uc?export=view&id={file_id}"
             try:
+                # Ảnh intro này dùng st.image nên dùng download_url OK
                 response = requests.get(download_url)
                 if response.status_code == 200:
                     c1, c2, c3 = st.columns([1, 4, 1]) 
@@ -341,11 +380,28 @@ else:
 
     with st.form("survey_form"):
         st.markdown('<div class="section-header">1. THÔNG TIN CHUNG</div>', unsafe_allow_html=True)
+        st.write("**Tên đăng nhập của anh/chị:**")
+        
+        # Ô nhập liệu Username + Đuôi Email
+        c_user, c_domain = st.columns([2, 5])
+        with c_user:
+            username_input = st.text_input(
+                "User Account", 
+                key="user_name_input", 
+                label_visibility="collapsed"
+            )
+        with c_domain:
+            st.markdown(
+                f"<div style='padding-top: 10px; font-size: 18px; color: #555;'>{EMAIL_DOMAIN}</div>", 
+                unsafe_allow_html=True
+            )
+
         st.write("**1. Anh/chị thường truy cập Dashboard này khi nào?** *")
-        st.radio("Tần suất truy cập", ["Hàng ngày (Vận hành)", "Hàng tuần (Báo cáo/Họp)", "Hàng tháng (Chiến lược)", "Chỉ khi có sự cố bất thường xảy ra", "Hiếm khi/Chưa bao giờ"], key="q1", index=None)
+        # Sửa lỗi: Thêm Label nhưng để collapsed
+        st.radio("Tần suất truy cập", ["Hàng ngày (Vận hành)", "Hàng tuần (Báo cáo/Họp)", "Hàng tháng (Chiến lược)", "Chỉ khi có sự cố bất thường xảy ra", "Hiếm khi/Chưa bao giờ"], key="q1", index=None, label_visibility="collapsed")
 
         st.write("**2. Mục đích lớn nhất của anh/chị khi mở Dashboard là gì?** *")
-        st.radio("Mục đích truy cập", ["Theo dõi tiến độ hoàn thành mục tiêu (KPIs).", "Tìm kiếm nguyên nhân của một vấn đề cụ thể (Drill-down).", "Lấy số liệu để xuất báo cáo/gửi cho cấp trên.", "Giám sát dữ liệu thời gian thực để đưa ra hành động ngay lập tức."], key="q2", index=None)
+        st.radio("Mục đích truy cập", ["Theo dõi tiến độ hoàn thành mục tiêu (KPIs).", "Tìm kiếm nguyên nhân của một vấn đề cụ thể (Drill-down).", "Lấy số liệu để xuất báo cáo/gửi cho cấp trên.", "Giám sát dữ liệu thời gian thực để đưa ra hành động ngay lập tức."], key="q2", index=None, label_visibility="collapsed")
 
         st.markdown('<div class="section-header">PHẦN 2: ĐÁNH GIÁ CHI TIẾT VISUAL</div>', unsafe_allow_html=True)
         st.info("💡 Di chuột vào tên thành phần (bên trái) để xem Ảnh minh họa.")
@@ -381,13 +437,23 @@ else:
                     tz = pytz.timezone('Asia/Ho_Chi_Minh')
                     timestamp = datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S")
                     row_data = [timestamp]
+                    
+                    # Ghép email
+                    raw_user = st.session_state.get("user_name_input", "").strip()
+                    if not raw_user:
+                        st.error("⚠️ Vui lòng nhập Username trước khi gửi!")
+                        st.stop()
+                    full_email = f"{raw_user}{EMAIL_DOMAIN}"
+                    row_data.append(full_email)
+
                     row_data.append(st.session_state.get("q1", ""))
                     row_data.append(st.session_state.get("q2", ""))
                     
-                    # LOGIC LẤY DATA TỪ MULTISELECT (List -> String)
+                    # LOGIC LẤY DATA TỪ SELECTBOX (Lấy giá trị trực tiếp)
                     for idx in range(len(visual_items)):
-                        raw_val = st.session_state.get(f"vis_rating_{idx}", [])
-                        row_data.append(raw_val)
+                        # Selectbox trả về String hoặc None
+                        val = st.session_state.get(f"vis_rating_{idx}")
+                        row_data.append(val if val else "")
 
                     for idx in range(len(visual_items)):
                         issues = st.session_state.get(f"vis_issue_{idx}", [])
@@ -396,8 +462,9 @@ else:
                     row_data.append(st.session_state.get("q5", ""))
                     
                     for idx in range(len(filter_items_data)):
-                        raw_val = st.session_state.get(f"fil_rating_{idx}", [])
-                        row_data.append(raw_val)
+                        # Selectbox Filter
+                        val = st.session_state.get(f"fil_rating_{idx}")
+                        row_data.append(val if val else "")
                     
                     row_data.append(st.session_state.get("q7", ""))
 
