@@ -16,20 +16,14 @@ import pytz
 import re
 import requests
 from io import BytesIO
-import time # Thêm thư viện time để tạo hiệu ứng chuyển cảnh mượt hơn
+import time
 
-# --- 1. CẤU HÌNH HỆ THỐNG ---
-
-# FILE 1: Nơi lưu kết quả khảo sát (Write)
+# --- 1. CẤU HÌNH ---
 DATA_SHEET_URL = "https://docs.google.com/spreadsheets/d/1DMgxkDSp_dq7IMzEmHdGK-nypIc_PLSsmTUIwFCXqZ8/edit"
-
-# FILE 2: Nơi chứa Config ảnh (Read)
 CONFIG_SHEET_URL = "https://docs.google.com/spreadsheets/d/1nNJI1oxEhgYtNCk1pdEFyIR6M4UPrfjRw1F_rljyAHM/edit" 
 
 TARGET_COLUMNS = [
-    "Timestamp",
-    "1. Anh/chị thường truy cập Dashboard này khi nào?",
-    "2. Mục đích lớn nhất của anh/chị khi mở Dashboard là gì?",
+    "Timestamp", "1. Anh/chị thường truy cập Dashboard này khi nào?", "2. Mục đích lớn nhất của anh/chị khi mở Dashboard là gì?",
     "3. Anh/chị vui lòng đánh giá từng thành phần visual trong dashboard [Card % Sales: Hiển thị % tăng trưởng doanh thu so với kỳ trước theo thời gian chọn.]",
     "3. Anh/chị vui lòng đánh giá từng thành phần visual trong dashboard [Text box Filter: Hiển thị liệt kê các điều kiện lọc đang được lựa chọn.]",
     "3. Anh/chị vui lòng đánh giá từng thành phần visual trong dashboard [StoreProfile.Group_Concept: Concept cửa hàng, có khả năng drill down đến: Phân vùng -> Tỉnh/TP -> Quận/Huyện -> Phường/Xã -> Mã cửa hàng_Tên cửa hàng]",
@@ -119,28 +113,32 @@ st.set_page_config(page_title="Khảo sát BI Dashboard CMC", layout="wide")
 
 st.markdown("""
 <style>
+    /* CSS Tooltip hiện sang ngang */
     .tooltip {
         position: relative;
-        display: block; 
+        display: inline-block;
         cursor: help;
         color: #2E86C1;
         font-weight: 600;
         font-size: 16px;
         padding: 12px;
         border-radius: 8px;
+        background-color: #f9f9f9;
         border: 1px solid transparent;
         transition: all 0.2s ease;
-        background-color: #f9f9f9;
-        z-index: 1;
+        width: 100%; 
     }
+
     .tooltip:hover {
         background-color: #e6f3ff;
         border-color: #b3d9ff;
         z-index: 1000; 
     }
+
+    /* Nội dung Pop-up */
     .tooltip .tooltiptext {
         visibility: hidden;
-        width: 550px;
+        width: 700px; 
         background-color: #ffffff;
         color: #333;
         text-align: left;
@@ -148,71 +146,56 @@ st.markdown("""
         padding: 15px;
         position: absolute;
         z-index: 9999;
-        bottom: 120%; 
-        left: 0;
+        
+        /* 👇👇👇 KỸ THUẬT CĂN GIỮA MỚI 👇👇👇 */
+        top: 50%;             /* Điểm bắt đầu là giữa dòng cha */
+        left: 105%;           /* Đẩy sang phải */
+        transform: translateY(-50%); /* Dịch ngược lại 50% chiều cao của chính nó để căn giữa hoàn hảo */
+        /* ------------------------------------- */
+        
         opacity: 0;
         transition: opacity 0.3s;
-        box-shadow: 0px 8px 25px rgba(0,0,0,0.3);
+        box-shadow: 0px 4px 20px rgba(0,0,0,0.2);
         border: 1px solid #ddd;
         font-weight: normal;
         font-size: 14px;
         line-height: 1.5;
     }
+
+    /* Mũi tên chỉ sang trái (hướng vào chữ) */
     .tooltip .tooltiptext::after {
         content: "";
         position: absolute;
-        top: 100%;
-        left: 30px; 
-        margin-left: -5px;
+        
+        /* 👇 Mũi tên cũng phải nằm giữa */
+        top: 50%; 
+        margin-top: -8px; /* Trừ đi 1 nửa kích thước mũi tên để chính xác */
+        /* -------------------------- */
+        
+        right: 100%; 
         border-width: 8px;
         border-style: solid;
-        border-color: #ffffff transparent transparent transparent; 
+        border-color: transparent #ffffff transparent transparent; 
     }
+
     .tooltip:hover .tooltiptext {
         visibility: visible;
         opacity: 1;
     }
+    
     .tooltip-img {
         width: 100%;
         height: auto;
         border-radius: 6px;
         margin-bottom: 12px;
         border: 1px solid #eee;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    }
-    .section-header {
-        font-size: 22px;
-        font-weight: bold;
-        margin-top: 40px;
-        margin-bottom: 20px;
-        color: #262730;
-        border-bottom: 2px solid #f0f2f6;
-        padding-bottom: 10px;
-    }
-    .small-text {
-        font-size: 13px;
-        color: #666;
-        font-style: italic;
     }
     
-    /* CSS cho trang cảm ơn */
-    .thank-you-box {
-        text-align: center;
-        padding: 50px;
-        background-color: #f0f8ff;
-        border-radius: 15px;
-        margin-top: 20px;
-    }
-    .thank-you-title {
-        color: #2E86C1;
-        font-size: 32px;
-        font-weight: bold;
-    }
-    .thank-you-text {
-        font-size: 18px;
-        color: #555;
-        margin-top: 15px;
-    }
+    .section-header { font-size: 22px; font-weight: bold; margin-top: 40px; margin-bottom: 20px; color: #262730; border-bottom: 2px solid #f0f2f6; padding-bottom: 10px; }
+    .small-text { font-size: 13px; color: #666; font-style: italic; }
+    .thank-you-box { text-align: center; padding: 50px; background-color: #f0f8ff; border-radius: 15px; margin-top: 20px; }
+    .thank-you-title { color: #2E86C1; font-size: 32px; font-weight: bold; }
+    .thank-you-text { font-size: 18px; color: #555; margin-top: 15px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -248,59 +231,77 @@ else:
     visual_items = loaded_items
     filter_items_data = []
 
-issues_list = ["Cách trình bày/biểu đồ quá phức tạp", "Số liệu thường xuyên sai lệch", "Font chữ nhỏ, màu sắc khó nhìn", "Cần số liệu này cho công việc nhưng không xem được", "Khó thao tác", "Tốc độ tải quá chậm", "Không hiển thị tốt trên thiết bị của tôi"]
+issues_list = ["Cách trình bày/biểu đồ quá phức tạp", "Số liệu thường xuyên sai lệch", "Font chữ nhỏ, màu sắc khó nhìn", "Cần số liệu này nhưng không xem được", "Khó thao tác", "Tốc độ tải quá chậm", "Không hiển thị tốt trên thiết bị của tôi"]
 
 # --- 4. RENDER FUNCTIONS ---
 def render_combined_visual_row(index, label, description, image_url):
     display_img = image_url if image_url and image_url.strip() else img_placeholder
-    col1, col2 = st.columns([4, 6])
+    col1, col2 = st.columns([7, 3])
     with col1:
-        tooltip_html = f"""
-        <div class="tooltip">
-            <span> {label}</span>
-            <span class="tooltiptext">
-                <img src="{display_img}" class="tooltip-img" alt="Minh họa">
-                <br><b>Mô tả:</b><br>{description}
-            </span>
-        </div>
-        """
-        st.markdown(tooltip_html, unsafe_allow_html=True)
+        s1, s2 = st.columns([2, 5])
+        with s1:
+            tooltip_html = f"""
+            <div class="tooltip">
+                <span> {label}</span>
+                <span class="tooltiptext">
+                    <img src="{display_img}" class="tooltip-img" alt="Minh họa">
+                    <br>{description}<br>
+                </span>
+            </div>
+            """
+            st.markdown(tooltip_html, unsafe_allow_html=True)
     with col2:
-        st.markdown(f"<span class='small-text'>Mức độ cần thiết:</span>", unsafe_allow_html=True)
+        st.markdown(f"<span class='small-text' style='color:#D35400'>Mức độ cần thiết:</span>", unsafe_allow_html=True)
         rating_options = ["Rất không cần thiết", "Không cần thiết", "Bình thường", "Cần thiết", "Rất cần thiết"]
-        st.radio(f"Rating {label}", rating_options, key=f"vis_rating_{index}", horizontal=True, index=None, label_visibility="collapsed")
-        
+
+        st.selectbox(
+            f"Rating {label}", 
+            rating_options, 
+            key=f"vis_rating_{index}", # Key bắt đầu bằng 'vis_'
+            index=None,  
+            placeholder="Chọn mức độ...",
+            label_visibility="collapsed"
+        )
+            
         st.markdown(f"<span class='small-text' style='color:#D35400'>Vấn đề tồn đọng (nếu có):</span>", unsafe_allow_html=True)
         st.multiselect(f"Issues {label}", issues_list, key=f"vis_issue_{index}", label_visibility="collapsed", placeholder="Chọn vấn đề...")
     st.markdown("<hr style='margin: 15px 0; border-top: 1px solid #f0f2f6;'>", unsafe_allow_html=True)
 
 def render_filter_row(index, label, description, image_url):
     display_img = image_url if image_url and image_url.strip() else img_placeholder
-    col1, col2 = st.columns([4, 6])
+    col1, col2 = st.columns([7, 3])
     with col1:
-        tooltip_html = f"""
-        <div class="tooltip">
-            <span> {label}</span>
-            <span class="tooltiptext">
-                <img src="{display_img}" class="tooltip-img" alt="Minh họa">
-                <br><b>Mô tả:</b><br>{description}
-            </span>
-        </div>
-        """
-        st.markdown(tooltip_html, unsafe_allow_html=True)
+        s1, s2 = st.columns([2, 5])
+        with s1:
+            tooltip_html = f"""
+            <div class="tooltip">
+                <span> {label}</span>
+                <span class="tooltiptext">
+                    <img src="{display_img}" class="tooltip-img" alt="Minh họa">
+                    <br>{description}<br>
+                </span>
+            </div>
+            """
+            st.markdown(tooltip_html, unsafe_allow_html=True)
     with col2:
-        st.markdown(f"<span class='small-text'>Mức độ cần thiết:</span>", unsafe_allow_html=True)
+        st.markdown(f"<span class='small-text' style='color:#D35400'>Mức độ cần thiết:</span>", unsafe_allow_html=True)
         rating_options = ["Rất không cần thiết", "Không cần thiết", "Bình thường", "Cần thiết", "Rất cần thiết"]
-        st.radio(f"Filter Rating {label}", rating_options, key=f"fil_rating_{index}", horizontal=True, index=None, label_visibility="collapsed")
+            
+        # SỬA: Dùng multiselect max=1
+        st.selectbox(
+            f"Filter Rating {label}", 
+            rating_options, 
+            key=f"fil_rating_{index}", # Quan trọng: Phải khác key của visual
+            index=None, 
+            placeholder="Chọn mức độ...",
+            label_visibility="collapsed"
+        )
     st.markdown("<hr style='margin: 15px 0; border-top: 1px dashed #eee;'>", unsafe_allow_html=True)
 
 # --- 5. LOGIC CHUYỂN TRANG (SESSION STATE) ---
-
-# Khởi tạo trạng thái submit nếu chưa có
 if 'submitted' not in st.session_state:
     st.session_state['submitted'] = False
 
-# NẾU ĐÃ SUBMIT -> HIỆN TRANG CẢM ƠN
 if st.session_state['submitted']:
     st.markdown("""
     <div class="thank-you-box">
@@ -311,13 +312,10 @@ if st.session_state['submitted']:
         </div>
     </div>
     """, unsafe_allow_html=True)
-    
-    # Nút để quay lại điền mới (nếu cần)
     if st.button("Điền lại khảo sát khác"):
         st.session_state['submitted'] = False
         st.rerun()
 
-# NẾU CHƯA SUBMIT -> HIỆN FORM KHẢO SÁT
 else:
     st.title("Khảo sát nhu cầu sử dụng BI dashboard của CMC")
     st.markdown("""
@@ -327,8 +325,7 @@ else:
     </div>
     """, unsafe_allow_html=True)
 
-    # Hiển thị ảnh Intro
-    INTRO_IMAGE_LINK = "https://drive.google.com/file/d/1Mfm62cQ4E5Adh0j2oBX4_dgPu0ga62Qk/view?usp=sharing"
+    INTRO_IMAGE_LINK = "https://drive.google.com/file/d/1L3qD--XLvazv9op8jGG-mPUn_qzk2oab/view?usp=drive_link"
     if INTRO_IMAGE_LINK:
         match = re.search(r'(/d/|id=)([a-zA-Z0-9_-]+)', INTRO_IMAGE_LINK)
         if match:
@@ -337,14 +334,12 @@ else:
             try:
                 response = requests.get(download_url)
                 if response.status_code == 200:
-                    c1, c2, c3 = st.columns([1, 4, 1])
-                    with c2: # Chỉ hiển thị ảnh ở cột giữa
-                        st.image(BytesIO(response.content), caption="RP_Sales_Daily_MCH_Store - Sales by Store", width="stretch")
+                    c1, c2, c3 = st.columns([1, 4, 1]) 
+                    with c2:
+                        st.image(BytesIO(response.content), caption="RP_Sales_Daily_MCH_Store – Sales by Store", width="stretch")
             except: pass
 
-    # FORM CHÍNH
     with st.form("survey_form"):
-        # SECTION 1
         st.markdown('<div class="section-header">1. THÔNG TIN CHUNG</div>', unsafe_allow_html=True)
         st.write("**1. Anh/chị thường truy cập Dashboard này khi nào?** *")
         st.radio("Tần suất truy cập", ["Hàng ngày (Vận hành)", "Hàng tuần (Báo cáo/Họp)", "Hàng tháng (Chiến lược)", "Chỉ khi có sự cố bất thường xảy ra", "Hiếm khi/Chưa bao giờ"], key="q1", index=None)
@@ -352,11 +347,10 @@ else:
         st.write("**2. Mục đích lớn nhất của anh/chị khi mở Dashboard là gì?** *")
         st.radio("Mục đích truy cập", ["Theo dõi tiến độ hoàn thành mục tiêu (KPIs).", "Tìm kiếm nguyên nhân của một vấn đề cụ thể (Drill-down).", "Lấy số liệu để xuất báo cáo/gửi cho cấp trên.", "Giám sát dữ liệu thời gian thực để đưa ra hành động ngay lập tức."], key="q2", index=None)
 
-        # SECTION 2
         st.markdown('<div class="section-header">PHẦN 2: ĐÁNH GIÁ CHI TIẾT VISUAL</div>', unsafe_allow_html=True)
         st.info("💡 Di chuột vào tên thành phần (bên trái) để xem Ảnh minh họa.")
         
-        c1, c2 = st.columns([4, 6])
+        c1, c2 = st.columns([7, 3])
         c1.markdown("**Thành phần**")
         c2.markdown("**Đánh giá & Vấn đề**")
         st.markdown("---")
@@ -364,9 +358,8 @@ else:
             render_combined_visual_row(idx, label, desc, img_link)
         st.text_area("5. Đề xuất của Anh/chị để cải thiện các mục visual trên *", key="q5")
 
-        # SECTION 3
         st.markdown('<div class="section-header">PHẦN 3. ĐÁNH GIÁ CHI TIẾT FILTER</div>', unsafe_allow_html=True)
-        c1, c2 = st.columns([4, 6])
+        c1, c2 = st.columns([7, 3])
         c1.markdown("**Bộ lọc (Filter)**")
         c2.markdown("**Mức độ cần thiết**")
         st.markdown("---")
@@ -380,32 +373,34 @@ else:
         st.markdown("---")
         submitted = st.form_submit_button("GỬI KHẢO SÁT", type="primary", use_container_width=True)
 
-    # LOGIC XỬ LÝ KHI BẤM GỬI
     if submitted:
-        # HIỆN SPINNER TRONG LÚC ĐANG UPLOAD
         with st.spinner("Đang gửi dữ liệu, vui lòng đợi trong giây lát..."):
             sheet = connect_to_data_sheet()
             if sheet:
                 try:
-                    # Chuẩn bị Data
                     tz = pytz.timezone('Asia/Ho_Chi_Minh')
                     timestamp = datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S")
                     row_data = [timestamp]
                     row_data.append(st.session_state.get("q1", ""))
                     row_data.append(st.session_state.get("q2", ""))
+                    
+                    # LOGIC LẤY DATA TỪ MULTISELECT (List -> String)
                     for idx in range(len(visual_items)):
-                        val = st.session_state.get(f"vis_rating_{idx}", "")
-                        row_data.append(val if val is not None else "")
+                        raw_val = st.session_state.get(f"vis_rating_{idx}", [])
+                        row_data.append(raw_val)
+
                     for idx in range(len(visual_items)):
                         issues = st.session_state.get(f"vis_issue_{idx}", [])
                         row_data.append(", ".join(issues) if issues else "")
+                    
                     row_data.append(st.session_state.get("q5", ""))
+                    
                     for idx in range(len(filter_items_data)):
-                        val = st.session_state.get(f"fil_rating_{idx}", "")
-                        row_data.append(val if val is not None else "")
+                        raw_val = st.session_state.get(f"fil_rating_{idx}", [])
+                        row_data.append(raw_val)
+                    
                     row_data.append(st.session_state.get("q7", ""))
 
-                    # Upload
                     if len(sheet.get_all_values()) == 0:
                         sheet.append_row(TARGET_COLUMNS)
                     
@@ -416,10 +411,7 @@ else:
                         table_range='A1'
                     )
                     
-                    # QUAN TRỌNG: Upload xong thì set trạng thái thành True
                     st.session_state['submitted'] = True
-                    
-                    # Tự động reload để chuyển sang màn hình cảm ơn
                     st.rerun()
                     
                 except Exception as e:
