@@ -377,7 +377,7 @@ if st.session_state['submitted']:
         st.rerun()
 
 else:
-    st.title("Khảo sát nhu cầu sử dụng BI dashboard của CMC")
+    st.title("Danh sách các báo cáo cần khảo sát")
     
     # -----------------------------------------------
     # BƯỚC 1: CHỌN BÁO CÁO (Ở NGOÀI FORM)
