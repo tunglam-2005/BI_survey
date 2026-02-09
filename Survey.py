@@ -238,7 +238,7 @@ def render_combined_visual_row(index, label, description, raw_link):
         rating_options = ["Rất không cần thiết", "Không cần thiết", "Bình thường", "Cần thiết", "Rất cần thiết"]
         st.selectbox(f"Rating {label}", rating_options, key=f"vis_rating_{index}", index=None, placeholder="Chọn mức độ...", label_visibility="collapsed")
         
-        st.markdown(f"<span class='small-text' style='color:#D35400'>Vấn đề tồn đọng (nếu có):</span>", unsafe_allow_html=True)
+        st.markdown(f"<span class='small-text' style='color:#D35400'>Vấn đề tồn đọng (nếu có, có thể chọn nhiều hơn 1 vấn đề):</span>", unsafe_allow_html=True)
         st.multiselect(f"Issues {label}", issues_list, key=f"vis_issue_{index}", label_visibility="collapsed", placeholder="Chọn vấn đề...")
     st.markdown("<hr style='margin: 15px 0; border-top: 1px solid #f0f2f6;'>", unsafe_allow_html=True)
 
@@ -358,7 +358,7 @@ else:
     # -----------------------------------------------
     with st.form("survey_form"):
         st.markdown('<div class="section-header">1. THÔNG TIN CHUNG</div>', unsafe_allow_html=True)
-        st.write("**Tên đăng nhập của anh/chị:**")
+        st.write("**Username của anh/chị:**")
         
         c_user, c_domain = st.columns([2, 5])
         with c_user:
