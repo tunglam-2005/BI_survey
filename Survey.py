@@ -133,6 +133,30 @@ def get_or_create_sheet(report_name, header_columns):
 st.set_page_config(page_title="Khảo sát BI Dashboard CMC", layout="wide")
 
 st.markdown("""
+<script>
+    window.toggleZoom = function(element) {
+        // Kiểm tra trạng thái hiện tại (đang zoom hay chưa?)
+        // Chúng ta dùng thuộc tính data-zoomed="true/false" để theo dõi
+        const isZoomed = element.getAttribute('data-zoomed') === 'true';
+
+        if (isZoomed) {
+            // Đang to -> Thu nhỏ lại
+            element.style.transform = "scale(1)";
+            element.setAttribute('data-zoomed', 'false');
+            element.style.cursor = "zoom-in"; // Đổi con trỏ thành kính lúp cộng
+            element.style.zIndex = "100";     // Trả về lớp bình thường
+        } else {
+            // Đang nhỏ -> Phóng to
+            element.style.transform = "scale(2)"; // Phóng to gấp 2 lần (bạn có thể chỉnh số này)
+            element.setAttribute('data-zoomed', 'true');
+            element.style.cursor = "zoom-out"; // Đổi con trỏ thành kính lúp trừ
+            element.style.zIndex = "99999";    // Đưa ảnh lên trên cùng để không bị che
+        }
+    }
+</script>
+""", unsafe_allow_html=True)
+
+st.markdown("""
 <style>
     /* CSS Tooltip thông minh (Tự co giãn) */
     .tooltip {
@@ -197,10 +221,33 @@ st.markdown("""
         height: auto;
         max-width: 100%;
         max-height: 450px;
+        
         display: block;
         margin: 0 auto 12px auto;
         border-radius: 6px;
         border: 1px solid #eee;
+        
+        /* Hiệu ứng chuyển động mượt */
+        transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        transform-origin: center center;
+        cursor: zoom-in; /* Hiện kính lúp cộng */
+        position: relative;
+        z-index: 100;
+    }
+
+    /* 5. LOGIC ZOOM KHÔNG CẦN JS (Checkbox Hack) */
+    
+    /* Ẩn cái ô checkbox đi (chỉ dùng logic của nó) */
+    .zoom-checkbox {
+        display: none;
+    }
+
+    /* Khi checkbox được tick -> Ảnh nằm ngay sau Label sẽ phóng to */
+    .zoom-checkbox:checked + label .tooltip-img {
+        transform: scale(2.0); /* Phóng to gấp 2 lần */
+        cursor: zoom-out;      /* Đổi con trỏ thành kính lúp trừ */
+        z-index: 9999;         /* Nổi lên trên cùng */
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5); /* Đổ bóng cho đẹp */
     }
     .section-header { font-size: 22px; font-weight: bold; margin-top: 40px; margin-bottom: 20px; color: #262730; border-bottom: 2px solid #f0f2f6; padding-bottom: 10px; }
     .small-text { font-size: 13px; color: #666; font-style: italic; }
@@ -216,54 +263,98 @@ img_placeholder = "https://via.placeholder.com/400x200?text=No+Image"
 issues_list = ["Cách trình bày/biểu đồ quá phức tạp", "Số liệu thường xuyên sai lệch", "Font chữ nhỏ, màu sắc khó nhìn", "Cần số liệu này nhưng không xem được", "Khó thao tác", "Tốc độ tải quá chậm", "Không hiển thị tốt trên thiết bị của tôi"]
 
 def render_combined_visual_row(index, label, description, raw_link):
+    # 1. Xử lý ảnh (Base64 để chống lỗi 403)
     base64_img = get_image_as_base64(raw_link)
     display_src = base64_img if base64_img else img_placeholder
+
+    # 2. Tạo ID duy nhất cho Checkbox (Quan trọng để không bị lẫn lộn)
+    # Ví dụ: zoom-vis-0, zoom-vis-1
+    zoom_id = f"zoom-vis-{index}"
 
     col1, col2 = st.columns([7, 3])
     with col1:
         s1, s2 = st.columns([2, 5])
         with s1:
-            tooltip_html = f"""
-            <div class="tooltip">
-                <span> {label}</span>
-                <span class="tooltiptext">
-                    <img src="{display_src}" class="tooltip-img" alt="Minh họa">
-                    <br>{description}<br>
-                </span>
-            </div>
-            """
+            tooltip_html = f"""<div class="tooltip">
+<span> {label}</span>
+<span class="tooltiptext">
+<input type="checkbox" id="{zoom_id}" class="zoom-checkbox">
+<label for="{zoom_id}">
+<img src="{display_src}" class="tooltip-img" alt="Minh họa">
+</label>
+<div style="text-align: center; font-size: 11px; color: #888; margin-top: 5px;">(Bấm vào ảnh để Phóng to / Thu nhỏ)</div>
+<br>{description}<br>
+</span>
+</div>"""
             st.markdown(tooltip_html, unsafe_allow_html=True)
+            
     with col2:
+        # Phần đánh giá
         st.markdown(f"<span class='small-text' style='color:#D35400'>Mức độ cần thiết:</span>", unsafe_allow_html=True)
         rating_options = ["Rất không cần thiết", "Không cần thiết", "Bình thường", "Cần thiết", "Rất cần thiết"]
-        st.selectbox(f"Rating {label}", rating_options, key=f"vis_rating_{index}", index=None, placeholder="Chọn mức độ...", label_visibility="collapsed")
         
-        st.markdown(f"<span class='small-text' style='color:#D35400'>Vấn đề tồn đọng (nếu có, có thể chọn nhiều hơn 1 vấn đề):</span>", unsafe_allow_html=True)
-        st.multiselect(f"Issues {label}", issues_list, key=f"vis_issue_{index}", label_visibility="collapsed", placeholder="Chọn vấn đề...")
+        st.selectbox(
+            f"Rating {label}", 
+            rating_options, 
+            key=f"vis_rating_{index}", 
+            index=None, 
+            placeholder="Chọn mức độ...", 
+            label_visibility="collapsed"
+        )
+        
+        # Phần báo lỗi
+        st.markdown(f"<span class='small-text' style='color:#D35400'>Vấn đề tồn đọng (nếu có):</span>", unsafe_allow_html=True)
+        st.multiselect(
+            f"Issues {label}", 
+            issues_list, 
+            key=f"vis_issue_{index}", 
+            label_visibility="collapsed", 
+            placeholder="Chọn vấn đề..."
+        )
+    
     st.markdown("<hr style='margin: 15px 0; border-top: 1px solid #f0f2f6;'>", unsafe_allow_html=True)
 
+
 def render_filter_row(index, label, description, raw_link):
+    # 1. Xử lý ảnh
     base64_img = get_image_as_base64(raw_link)
     display_src = base64_img if base64_img else img_placeholder
+    
+    # 2. Tạo ID duy nhất (Khác với visual)
+    # Ví dụ: zoom-fil-0, zoom-fil-1
+    zoom_id = f"zoom-fil-{index}"
 
     col1, col2 = st.columns([7, 3])
     with col1:
         s1, s2 = st.columns([2, 5])
         with s1:
-            tooltip_html = f"""
-            <div class="tooltip">
-                <span> {label}</span>
-                <span class="tooltiptext">
-                    <img src="{display_src}" class="tooltip-img" alt="Minh họa">
-                    <br>{description}<br>
-                </span>
-            </div>
-            """
+            tooltip_html = f"""<div class="tooltip">
+<span> {label}</span>
+<span class="tooltiptext">
+<input type="checkbox" id="{zoom_id}" class="zoom-checkbox">
+<label for="{zoom_id}">
+<img src="{display_src}" class="tooltip-img" alt="Minh họa">
+</label>
+<div style="text-align: center; font-size: 11px; color: #888; margin-top: 5px;">(Bấm vào ảnh để Phóng to / Thu nhỏ)</div>
+<br>{description}<br>
+</span>
+</div>"""
             st.markdown(tooltip_html, unsafe_allow_html=True)
+            
     with col2:
+        # Phần đánh giá Filter
         st.markdown(f"<span class='small-text' style='color:#D35400'>Mức độ cần thiết:</span>", unsafe_allow_html=True)
         rating_options = ["Rất không cần thiết", "Không cần thiết", "Bình thường", "Cần thiết", "Rất cần thiết"]
-        st.selectbox(f"Filter Rating {label}", rating_options, key=f"fil_rating_{index}", index=None, placeholder="Chọn mức độ...", label_visibility="collapsed")
+        
+        st.selectbox(
+            f"Filter Rating {label}", 
+            rating_options, 
+            key=f"fil_rating_{index}", 
+            index=None, 
+            placeholder="Chọn mức độ...", 
+            label_visibility="collapsed"
+        )
+
     st.markdown("<hr style='margin: 15px 0; border-top: 1px dashed #eee;'>", unsafe_allow_html=True)
 
 # --- 6. LOGIC CHÍNH (MAIN APP) ---
