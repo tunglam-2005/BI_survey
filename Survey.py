@@ -265,6 +265,8 @@ issues_list = ["Cách trình bày/biểu đồ quá phức tạp", "Số liệu 
 def render_combined_visual_row(index, label, description, raw_link):
     base64_img = get_image_as_base64(raw_link)
     display_src = base64_img if base64_img else img_placeholder
+    
+    # Tạo ID duy nhất
     zoom_id = f"zoom-vis-{index}"
 
     col1, col2 = st.columns([7, 3])
@@ -272,9 +274,9 @@ def render_combined_visual_row(index, label, description, raw_link):
         s1, s2 = st.columns([2, 5])
         with s1:
             # 👇 QUAN TRỌNG:
-            # 1. Viết sát lề trái.
-            # 2. Dùng this.querySelector(...) thay vì getElementById.
-            tooltip_html = f"""<div class="tooltip" onmouseleave="this.querySelector('.zoom-checkbox').checked = false">
+            # 1. HTML viết sát lề trái.
+            # 2. onmouseleave gọi thẳng ID để tắt checkbox (checked = false).
+            tooltip_html = f"""<div class="tooltip" onmouseleave="document.getElementById('{zoom_id}').checked = false">
 <span> {label}</span>
 <span class="tooltiptext">
 <input type="checkbox" id="{zoom_id}" class="zoom-checkbox">
@@ -284,7 +286,9 @@ def render_combined_visual_row(index, label, description, raw_link):
 <div style="text-align: center; font-size: 11px; color: #888; margin-top: 5px;">(Bấm để Phóng to/Thu nhỏ)</div>
 <br>{description}<br>
 </span>
-</div>"""             
+</div>""" 
+            # 👆 Kết thúc HTML
+            
             st.markdown(tooltip_html, unsafe_allow_html=True)
             
     with col2:
@@ -292,7 +296,7 @@ def render_combined_visual_row(index, label, description, raw_link):
         rating_options = ["Rất không cần thiết", "Không cần thiết", "Bình thường", "Cần thiết", "Rất cần thiết"]
         st.selectbox(f"Rating {label}", rating_options, key=f"vis_rating_{index}", index=None, placeholder="Chọn mức độ...", label_visibility="collapsed")
         
-        st.markdown(f"<span class='small-text' style='color:#D35400'>Vấn đề tồn đọng (nếu có):</span>", unsafe_allow_html=True)
+        st.markdown(f"<span class='small-text' style='color:#D35400'>Vấn đề tồn đọng (nếu có, có thể chọn nhiều hơn 1 vấn đề):</span>", unsafe_allow_html=True)
         st.multiselect(f"Issues {label}", issues_list, key=f"vis_issue_{index}", label_visibility="collapsed", placeholder="Chọn vấn đề...")
     
     st.markdown("<hr style='margin: 15px 0; border-top: 1px solid #f0f2f6;'>", unsafe_allow_html=True)
@@ -301,13 +305,16 @@ def render_combined_visual_row(index, label, description, raw_link):
 def render_filter_row(index, label, description, raw_link):
     base64_img = get_image_as_base64(raw_link)
     display_src = base64_img if base64_img else img_placeholder
+    
+    # Tạo ID duy nhất (Khác với Visual)
     zoom_id = f"zoom-fil-{index}"
 
     col1, col2 = st.columns([7, 3])
     with col1:
         s1, s2 = st.columns([2, 5])
         with s1:
-            tooltip_html = f"""<div class="tooltip" onmouseleave="this.querySelector('.zoom-checkbox').checked = false">
+            # 👇 QUAN TRỌNG: onmouseleave gọi thẳng ID 👇
+            tooltip_html = f"""<div class="tooltip" onmouseleave="document.getElementById('{zoom_id}').checked = false">
 <span> {label}</span>
 <span class="tooltiptext">
 <input type="checkbox" id="{zoom_id}" class="zoom-checkbox">
