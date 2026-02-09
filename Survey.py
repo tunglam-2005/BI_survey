@@ -281,7 +281,7 @@ def render_combined_visual_row(index, label, description, raw_link):
 <label for="{zoom_id}">
 <img src="{display_src}" class="tooltip-img" alt="Minh họa">
 </label>
-<div style="text-align: center; font-size: 11px; color: #888; margin-top: 5px;">(Bấm để Phóng to • Di chuột ra ngoài để Thu nhỏ)</div>
+<div style="text-align: center; font-size: 11px; color: #888; margin-top: 5px;">(Bấm để Phóng to/Thu nhỏ)</div>
 <br>{description}<br>
 </span>
 </div>"""             
