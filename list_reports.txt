@@ -1,1 +1,2 @@
 RP_Sales_Daily_MCH_Store – Sales by Store
+RP_Sales_Daily_MCH_Store – Sales by Category
