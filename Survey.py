@@ -18,6 +18,7 @@ import requests
 from io import BytesIO
 import time
 import base64
+import os
 
 # --- 1. CẤU HÌNH ---
 DATA_SHEET_URL = "https://docs.google.com/spreadsheets/d/1DMgxkDSp_dq7IMzEmHdGK-nypIc_PLSsmTUIwFCXqZ8/edit"
@@ -27,6 +28,7 @@ EMAIL_DOMAIN = "@winmart.masangroup.com"
 TARGET_COLUMNS = [
     "Timestamp", 
     "Email",
+    "Tên báo cáo"
     "1. Anh/chị thường truy cập Dashboard này khi nào?", 
     "2. Mục đích lớn nhất của anh/chị khi mở Dashboard là gì?",
     "3. Anh/chị vui lòng đánh giá từng thành phần visual trong dashboard [Card % Sales: Hiển thị % tăng trưởng doanh thu so với kỳ trước theo thời gian chọn.]",
@@ -83,6 +85,25 @@ TARGET_COLUMNS = [
     "6. Anh/chị vui lòng đánh giá từng thành phần filter trong dashboard [Apply / Clear: Nút xác nhận áp dụng hoặc xóa trắng các điều kiện lọc.]",
     "7. Đề xuất của Anh/chị để cải thiện các mục filter trên"
 ]
+
+@st.cache_data(show_spinner=False)
+def load_report_list():
+    """
+    Đọc danh sách báo cáo từ file .txt nằm cùng thư mục
+    """
+    file_path = "list_reports.txt"
+    
+    # Kiểm tra xem file có tồn tại không
+    if not os.path.exists(file_path):
+        return ["Mặc định (Không tìm thấy file danh sách)"]
+    
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            # Đọc từng dòng và loại bỏ khoảng trắng thừa/xuống dòng
+            reports = [line.strip() for line in f.readlines() if line.strip()]
+        return reports
+    except Exception as e:
+        return [f"Lỗi đọc file: {e}"]
 
 def get_gspread_client():
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
@@ -396,6 +417,19 @@ else:
                 unsafe_allow_html=True
             )
 
+        st.write("**Anh/chị đang đánh giá báo cáo nào?** *")
+        
+        # Gọi hàm đọc danh sách
+        report_options = load_report_list()
+        
+        # Tạo Selectbox
+        selected_report = st.selectbox(
+            "Chọn báo cáo",
+            report_options,
+            key="selected_report_name",
+            label_visibility="collapsed"
+        )
+
         st.write("**1. Anh/chị thường truy cập Dashboard này khi nào?** *")
         # Sửa lỗi: Thêm Label nhưng để collapsed
         st.radio("Tần suất truy cập", ["Hàng ngày (Vận hành)", "Hàng tuần (Báo cáo/Họp)", "Hàng tháng (Chiến lược)", "Chỉ khi có sự cố bất thường xảy ra", "Hiếm khi/Chưa bao giờ"], key="q1", index=None, label_visibility="collapsed")
@@ -446,6 +480,9 @@ else:
                     full_email = f"{raw_user}{EMAIL_DOMAIN}"
                     row_data.append(full_email)
 
+                    report_name = st.session_state.get("selected_report_name", "")
+                    row_data.append(report_name)
+                    
                     row_data.append(st.session_state.get("q1", ""))
                     row_data.append(st.session_state.get("q2", ""))
                     
