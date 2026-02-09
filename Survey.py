@@ -235,7 +235,7 @@ st.markdown("""
         z-index: 100;
     }
 
-    /* 5. LOGIC ZOOM KHÔNG CẦN JS (Checkbox Hack) */
+    /* 5. LOGIC ZOOM */
     
     /* Ẩn cái ô checkbox đi (chỉ dùng logic của nó) */
     .zoom-checkbox {
@@ -263,97 +263,68 @@ img_placeholder = "https://via.placeholder.com/400x200?text=No+Image"
 issues_list = ["Cách trình bày/biểu đồ quá phức tạp", "Số liệu thường xuyên sai lệch", "Font chữ nhỏ, màu sắc khó nhìn", "Cần số liệu này nhưng không xem được", "Khó thao tác", "Tốc độ tải quá chậm", "Không hiển thị tốt trên thiết bị của tôi"]
 
 def render_combined_visual_row(index, label, description, raw_link):
-    # 1. Xử lý ảnh (Base64 để chống lỗi 403)
     base64_img = get_image_as_base64(raw_link)
     display_src = base64_img if base64_img else img_placeholder
-
-    # 2. Tạo ID duy nhất cho Checkbox (Quan trọng để không bị lẫn lộn)
-    # Ví dụ: zoom-vis-0, zoom-vis-1
     zoom_id = f"zoom-vis-{index}"
 
     col1, col2 = st.columns([7, 3])
     with col1:
         s1, s2 = st.columns([2, 5])
         with s1:
-            tooltip_html = f"""<div class="tooltip">
+            # 👇 QUAN TRỌNG:
+            # 1. Viết sát lề trái.
+            # 2. Dùng this.querySelector(...) thay vì getElementById.
+            tooltip_html = f"""<div class="tooltip" onmouseleave="this.querySelector('.zoom-checkbox').checked = false">
 <span> {label}</span>
 <span class="tooltiptext">
 <input type="checkbox" id="{zoom_id}" class="zoom-checkbox">
 <label for="{zoom_id}">
 <img src="{display_src}" class="tooltip-img" alt="Minh họa">
 </label>
-<div style="text-align: center; font-size: 11px; color: #888; margin-top: 5px;">(Bấm vào ảnh để Phóng to / Thu nhỏ)</div>
+<div style="text-align: center; font-size: 11px; color: #888; margin-top: 5px;">(Bấm để Phóng to • Di chuột ra ngoài để Thu nhỏ)</div>
 <br>{description}<br>
 </span>
-</div>"""
+</div>"""             
             st.markdown(tooltip_html, unsafe_allow_html=True)
             
     with col2:
-        # Phần đánh giá
         st.markdown(f"<span class='small-text' style='color:#D35400'>Mức độ cần thiết:</span>", unsafe_allow_html=True)
         rating_options = ["Rất không cần thiết", "Không cần thiết", "Bình thường", "Cần thiết", "Rất cần thiết"]
+        st.selectbox(f"Rating {label}", rating_options, key=f"vis_rating_{index}", index=None, placeholder="Chọn mức độ...", label_visibility="collapsed")
         
-        st.selectbox(
-            f"Rating {label}", 
-            rating_options, 
-            key=f"vis_rating_{index}", 
-            index=None, 
-            placeholder="Chọn mức độ...", 
-            label_visibility="collapsed"
-        )
-        
-        # Phần báo lỗi
         st.markdown(f"<span class='small-text' style='color:#D35400'>Vấn đề tồn đọng (nếu có):</span>", unsafe_allow_html=True)
-        st.multiselect(
-            f"Issues {label}", 
-            issues_list, 
-            key=f"vis_issue_{index}", 
-            label_visibility="collapsed", 
-            placeholder="Chọn vấn đề..."
-        )
+        st.multiselect(f"Issues {label}", issues_list, key=f"vis_issue_{index}", label_visibility="collapsed", placeholder="Chọn vấn đề...")
     
     st.markdown("<hr style='margin: 15px 0; border-top: 1px solid #f0f2f6;'>", unsafe_allow_html=True)
 
 
 def render_filter_row(index, label, description, raw_link):
-    # 1. Xử lý ảnh
     base64_img = get_image_as_base64(raw_link)
     display_src = base64_img if base64_img else img_placeholder
-    
-    # 2. Tạo ID duy nhất (Khác với visual)
-    # Ví dụ: zoom-fil-0, zoom-fil-1
     zoom_id = f"zoom-fil-{index}"
 
     col1, col2 = st.columns([7, 3])
     with col1:
         s1, s2 = st.columns([2, 5])
         with s1:
-            tooltip_html = f"""<div class="tooltip">
+            tooltip_html = f"""<div class="tooltip" onmouseleave="this.querySelector('.zoom-checkbox').checked = false">
 <span> {label}</span>
 <span class="tooltiptext">
 <input type="checkbox" id="{zoom_id}" class="zoom-checkbox">
 <label for="{zoom_id}">
 <img src="{display_src}" class="tooltip-img" alt="Minh họa">
 </label>
-<div style="text-align: center; font-size: 11px; color: #888; margin-top: 5px;">(Bấm vào ảnh để Phóng to / Thu nhỏ)</div>
+<div style="text-align: center; font-size: 11px; color: #888; margin-top: 5px;">(Bấm để Phóng to • Di chuột ra ngoài để Thu nhỏ)</div>
 <br>{description}<br>
 </span>
 </div>"""
+            
             st.markdown(tooltip_html, unsafe_allow_html=True)
             
     with col2:
-        # Phần đánh giá Filter
         st.markdown(f"<span class='small-text' style='color:#D35400'>Mức độ cần thiết:</span>", unsafe_allow_html=True)
         rating_options = ["Rất không cần thiết", "Không cần thiết", "Bình thường", "Cần thiết", "Rất cần thiết"]
-        
-        st.selectbox(
-            f"Filter Rating {label}", 
-            rating_options, 
-            key=f"fil_rating_{index}", 
-            index=None, 
-            placeholder="Chọn mức độ...", 
-            label_visibility="collapsed"
-        )
+        st.selectbox(f"Filter Rating {label}", rating_options, key=f"fil_rating_{index}", index=None, placeholder="Chọn mức độ...", label_visibility="collapsed")
 
     st.markdown("<hr style='margin: 15px 0; border-top: 1px dashed #eee;'>", unsafe_allow_html=True)
 
@@ -461,8 +432,30 @@ else:
         st.radio("Tần suất truy cập", ["Hàng ngày (Vận hành)", "Hàng tuần (Báo cáo/Họp)", "Hàng tháng (Chiến lược)", "Chỉ khi có sự cố bất thường xảy ra", "Hiếm khi/Chưa bao giờ"], key="q1", index=None, label_visibility="collapsed")
 
         st.write("**Mục đích lớn nhất của anh/chị khi mở Dashboard là gì?** *")
-        st.radio("Mục đích truy cập", ["Theo dõi tiến độ hoàn thành mục tiêu (KPIs).", "Tìm kiếm nguyên nhân của một vấn đề cụ thể (Drill-down).", "Lấy số liệu để xuất báo cáo/gửi cho cấp trên.", "Giám sát dữ liệu thời gian thực để đưa ra hành động ngay lập tức."], key="q2", index=None, label_visibility="collapsed")
-
+        # Danh sách đáp án
+        q2_options = [
+            "Theo dõi tiến độ hoàn thành mục tiêu (KPIs).", 
+            "Tìm kiếm nguyên nhân của một vấn đề cụ thể (Drill-down).", 
+            "Lấy số liệu để xuất báo cáo/gửi cho cấp trên.", 
+            "Giám sát dữ liệu thời gian thực để đưa ra hành động ngay lập tức.",
+            "Khác"
+        ]
+        
+        # 1. Dùng Multiselect thay vì Radio
+        st.multiselect(
+            "Mục đích truy cập", 
+            q2_options, 
+            key="q2_select", # Đổi key khác với cũ để tránh lỗi
+            label_visibility="collapsed",
+            placeholder="Chọn một hoặc nhiều mục đích..."
+        )
+        
+        # 2. Ô nhập liệu cho mục Khác (Luôn hiện để tránh lỗi Form)
+        st.text_input(
+            "Chi tiết mục đích khác (Nếu chọn 'Khác')", 
+            key="q2_other_text", 
+            placeholder="Nếu chọn 'Khác', vui lòng nhập chi tiết tại đây..."
+        )
         # RENDER VISUALS
         if visual_items:
             st.markdown('<div class="section-header">PHẦN 2: ĐÁNH GIÁ CHI TIẾT VISUAL</div>', unsafe_allow_html=True)
@@ -511,7 +504,23 @@ else:
                 row_data.append(f"{raw_user}{EMAIL_DOMAIN}")
                 row_data.append(selected_report) # Report Name
                 row_data.append(st.session_state.get("q1", ""))
-                row_data.append(st.session_state.get("q2", ""))
+                q2_answers = st.session_state.get("q2_select", [])
+                # Kiểm tra xem có chọn 'Khác' không
+                if "Khác" in q2_answers:
+                    # Lấy nội dung người dùng nhập tay
+                    other_text = st.session_state.get("q2_other_text", "").strip()
+                    
+                    # Xóa chữ "Khác" khỏi danh sách để thay bằng nội dung chi tiết
+                    q2_answers.remove("Khác")
+                    
+                    if other_text:
+                        q2_answers.append(f"Khác: {other_text}")
+                    else:
+                        q2_answers.append("Khác (Không ghi chi tiết)")
+                
+                # 3. Nối tất cả thành một chuỗi (ngăn cách bằng dấu chấm phẩy)
+                final_q2_string = "; ".join(q2_answers)
+                row_data.append(final_q2_string)
                 
                 # - Data Visual
                 for idx, item in enumerate(visual_items):
