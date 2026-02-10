@@ -4,3 +4,4 @@ RP_Benchmark_Store - Category/Region Performance Benchmark
 RP_Benchmark_Store - RSM Performance
 RP_Benchmark_Store - Tier Performance
 RP_Sales_Trend_Final - Trend by Store
+RP_Sales_Trend_Final - Trend by Day Type
