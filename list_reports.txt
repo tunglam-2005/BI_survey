@@ -9,3 +9,4 @@ Fabric_BM_Report - Detail BM by Month
 Fabric_BM_Report - Category
 Fabric_BM_Report - Category by Month - Sales & FM
 Fabric_BM_Report - Category by Month - Rebate
+Fabric_BM_Report - Detail Article
