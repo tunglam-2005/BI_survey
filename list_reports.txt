@@ -7,3 +7,5 @@ RP_Sales_Trend_Final - Trend by Store
 RP_Sales_Trend_Final - Trend by Day Type
 Fabric_BM_Report - Detail BM by Month
 Fabric_BM_Report - Category
+Fabric_BM_Report - Category by Month - Sales & FM
+Fabric_BM_Report - Category by Month - Rebate
