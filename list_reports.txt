@@ -11,3 +11,4 @@ Fabric_BM_Report - Category by Month - Sales & FM
 Fabric_BM_Report - Category by Month - Rebate
 Fabric_BM_Report - Detail Article
 Fabric_Article_Logcost - Log Cost - Log per Unit
+Fabric_Article_Logcost - Trend
