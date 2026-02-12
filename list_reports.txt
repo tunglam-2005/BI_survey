@@ -16,3 +16,4 @@ Fabric_Article_Logcost - LogCost by Supplier
 Fabric_Shrinkage_By_Store - Overview Weekly Shrinkage
 Fabric_Shrinkage_By_Store - Monthly Shrinkage
 Fabric_Shrinkage_By_Store - Month - Trend
+Fabric_Shrinkage_By_Store - Month - Benchmark
