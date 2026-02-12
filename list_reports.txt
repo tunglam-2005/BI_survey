@@ -14,3 +14,5 @@ Fabric_Article_Logcost - Log Cost - Log per Unit
 Fabric_Article_Logcost - Trend
 Fabric_Article_Logcost - LogCost by Supplier
 Fabric_Shrinkage_By_Store - Overview Weekly Shrinkage
+Fabric_Shrinkage_By_Store - Monthly Shrinkage
+Fabric_Shrinkage_By_Store - Month - Trend
