@@ -18,3 +18,4 @@ Fabric_Shrinkage_By_Store - Monthly Shrinkage
 Fabric_Shrinkage_By_Store - Month - Trend
 Fabric_Shrinkage_By_Store - Month - Benchmark
 Fabric_Shrinkage_By_Store - 2.1 Weekly Shrinkage
+Fabric_Shrinkage_By_Store - 2.2 Week Trend
