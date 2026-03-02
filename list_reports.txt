@@ -6,6 +6,7 @@ RP_Benchmark_Store - Tier Performance
 SM_Sales_MCH_Daily - SKU Sales by Store - SKU Sales by Category
 RP_Sales_Trend_Final - Trend by Store
 RP_Sales_Trend_Final - Trend by Day Type
+Fabric_NSO_Tracking_Performance 2
 Fabric_BM_Report - Detail BM by Month
 Fabric_BM_Report - Category
 Fabric_BM_Report - Category by Month - Sales & FM
