@@ -21,3 +21,4 @@ Fabric_Shrinkage_By_Store - 2.1 Weekly Shrinkage
 Fabric_Shrinkage_By_Store - 2.2 Week Trend
 Fabric_Dynamics_ASM - Category - Brand
 Fabric_Dynamics_ASM - Detail Data
+Fabric_SalesFC_Report - by Val RSM/Category/Region (val)
