@@ -9,6 +9,9 @@ RP_Sales_Trend_Final - Trend by Day Type
 Fabric_NSO_Tracking_Performance 2
 Fabric_Sales_4_weeks
 Fabric_Sales_For_Export_New
+Fabric_WholeSales_By_Dataset - Wholesales by Date
+Fabric_WholeSales_By_Dataset - Transaction Detail
+Fabric_WholeSales_By_Dataset - Wholesales Performance
 Fabric_BM_Report - Detail BM by Month
 Fabric_BM_Report - Category
 Fabric_BM_Report - Category by Month - Sales & FM
